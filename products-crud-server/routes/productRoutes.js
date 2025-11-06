@@ -1,5 +1,5 @@
 import express from "express";
-import productModel from "../mobels/productsModel.mjs";
+import productModel from "../models/productModel.js";
 
 let productRouter = express.Router();
 productRouter.get("/", async (req, res) => {

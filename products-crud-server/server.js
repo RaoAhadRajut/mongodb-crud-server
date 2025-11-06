@@ -1,7 +1,7 @@
 import express from "express";
 import "dotenv/config";
 import mongoose from "mongoose";
-import productRouter from "./routes/productRoutes.mjs";
+import productRouter from "./routes/productRoutes.js";
 
 let app = express();
 let port = 3000;
