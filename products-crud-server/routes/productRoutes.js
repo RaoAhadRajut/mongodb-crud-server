@@ -1,104 +1,85 @@
 import express from "express";
-import productModel from "../models/productModel.js";
+import productModel from "../models/productsModel.js";
 
-let productRouter = express.Router();
+const productRouter = express.Router();
+
+// GET all products
 productRouter.get("/", async (req, res) => {
   try {
-    let products = await productModel.find({});
-    res.json({
-      message: "Successfully find the users",
-      product: products,
-    });
+    const products = await productModel.find({});
+    res.json({ message: "Successfully fetched products", products });
   } catch (error) {
-    res.json({
-      message: error.message,
-    });
+    res.status(500).json({ message: error.message });
   }
 });
 
+// GET product by ID
 productRouter.get("/:id", async (req, res) => {
   try {
-    let { id } = req.params;
-    let specificProduct = await productModel.findById(id);
-    if (specificProduct && id) {
-      res.json({
-        message: `Successfully get the Product with ID : ${id}`,
-        product: specificProduct,
-      });
-    }
-    res.json({
-      message: "Cannot getting the user",
-      product: "not found",
-    });
+    const { id } = req.params;
+    const product = await productModel.findById(id);
+    if (!product) return res.status(404).json({ message: "Product not found" });
+    res.json({ message: `Product fetched with ID: ${id}`, product });
   } catch (error) {
-    res.json({
-      message: error.message,
-      product: null,
-    });
+    res.status(500).json({ message: error.message });
   }
 });
 
+// POST - create new product
 productRouter.post("/", async (req, res) => {
-  let { productName, price, category, variations } = req.body;
-  if (!productName || !price || !category || !variations) {
-    res.json({
-      message: "Please enter the data correctly",
-      code: 400,
+  const { productName, price, category, variations } = req.body;
+
+  // required fields validation
+  if (!productName || !price || !category) {
+    return res.status(400).json({
+      message: "Please enter productName, price and category correctly"
     });
   }
+
   try {
-    let productDetails = req.body;
-    let productData = new productModel(productDetails);
+    const productData = new productModel({ productName, price, category, variations });
     await productData.save();
-    res.json({
-      message: "Successfully added the product in DB",
-      addedProduct: productData,
+    res.status(201).json({
+      message: "Product added successfully",
+      addedProduct: productData
     });
   } catch (error) {
-    console.log("Canot add the data");
+    console.error("POST Error:", error.message);
+    res.status(500).json({ message: "Server Error" });
   }
 });
 
-productRouter.delete("/:id", async (req, res) => {
-  let { id } = req.params;
-  try {
-    let productID = await productModel.findById(id);
-    if (productID) {
-      await productID.deleteOne(productID);
-      res.json({
-        message: "successfully deleted the user",
-        code: 200,
-      });
-    } else {
-      res.json({
-        message: "can't find the user",
-      });
-    }
-  } catch (error) {
-    res.json({
-      message: "Error in seleting the user",
-    });
-  }
-});
-
+// PATCH - update product
 productRouter.patch("/:id", async (req, res) => {
-  let{ id }= req.params;
-  let  { productName, price, category, variations } = req.body;
-  if (!productName || !price || !category || !variations) {
-    res.json({ message: "Please give the details correctly" });
-  } else {
-    try {
-      let updatedProduct = {productName,price,category,variations}
-      let productAfterUpdate = await productModel.findByIdAndUpdate(id, updatedProduct,{new: true});
-      res.json({
-        message: "successfully updated the product",
-        productAfterUpdate,
-      });
-    } catch (error) {
-      res.json({
-        message: "Cannot find the product with the specific Id",
-      });
-    }
+  const { id } = req.params;
+  const { productName, price, category, variations } = req.body;
+
+  if (!productName || !price || !category) {
+    return res.status(400).json({ message: "Please provide productName, price, category" });
+  }
+
+  try {
+    const updatedProduct = { productName, price, category, variations };
+    const productAfterUpdate = await productModel.findByIdAndUpdate(id, updatedProduct, { new: true });
+    if (!productAfterUpdate) return res.status(404).json({ message: "Product not found" });
+
+    res.json({ message: "Product updated successfully", productAfterUpdate });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// DELETE - delete product
+productRouter.delete("/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const productToDelete = await productModel.findById(id);
+    if (!productToDelete) return res.status(404).json({ message: "Product not found" });
+
+    await productToDelete.deleteOne();
+    res.json({ message: "Product deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 
