@@ -3,83 +3,133 @@ import productModel from "../models/productsModel.js";
 
 const productRouter = express.Router();
 
-// GET all products
 productRouter.get("/", async (req, res) => {
   try {
     const products = await productModel.find({});
-    res.json({ message: "Successfully fetched products", products });
+    res.status(200).json({
+      success: true,
+      message: "Successfully fetched all products",
+      count: products.length,
+      products,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Server Error while fetching products",
+      error: error.message,
+    });
   }
 });
 
-// GET product by ID
 productRouter.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const product = await productModel.findById(id);
-    if (!product) return res.status(404).json({ message: "Product not found" });
-    res.json({ message: `Product fetched with ID: ${id}`, product });
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+    res.status(200).json({
+      success: true,
+      message: `Fetched product with ID: ${id}`,
+      product,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Server Error while fetching product",
+      error: error.message,
+    });
   }
 });
 
-// POST - create new product
 productRouter.post("/", async (req, res) => {
-  const { productName, price, category, variations } = req.body;
-
-  // required fields validation
-  if (!productName || !price || !category) {
-    return res.status(400).json({
-      message: "Please enter productName, price and category correctly"
-    });
-  }
-
   try {
-    const productData = new productModel({ productName, price, category, variations });
-    await productData.save();
+    const { productName, price, category, variations } = req.body;
+
+    if (!productName || !price || !category) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide productName, price and category",
+      });
+    }
+
+    const newProduct = await productModel.create({
+      productName,
+      price,
+      category,
+      variations: variations ?? false,
+    });
+
     res.status(201).json({
+      success: true,
       message: "Product added successfully",
-      addedProduct: productData
+      addedProduct: newProduct,
     });
   } catch (error) {
-    console.error("POST Error:", error.message);
-    res.status(500).json({ message: "Server Error" });
+    console.error("🔥 POST Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server Error while adding product",
+      error: error.message,
+    });
   }
 });
 
-// PATCH - update product
 productRouter.patch("/:id", async (req, res) => {
-  const { id } = req.params;
-  const { productName, price, category, variations } = req.body;
-
-  if (!productName || !price || !category) {
-    return res.status(400).json({ message: "Please provide productName, price, category" });
-  }
-
   try {
-    const updatedProduct = { productName, price, category, variations };
-    const productAfterUpdate = await productModel.findByIdAndUpdate(id, updatedProduct, { new: true });
-    if (!productAfterUpdate) return res.status(404).json({ message: "Product not found" });
+    const { id } = req.params;
+    const { productName, price, category, variations } = req.body;
 
-    res.json({ message: "Product updated successfully", productAfterUpdate });
+    const updatedData = { productName, price, category, variations };
+    const updatedProduct = await productModel.findByIdAndUpdate(id, updatedData, { new: true });
+
+    if (!updatedProduct) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found for update",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Product updated successfully",
+      product: updatedProduct,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Server Error while updating product",
+      error: error.message,
+    });
   }
 });
 
-// DELETE - delete product
 productRouter.delete("/:id", async (req, res) => {
-  const { id } = req.params;
   try {
-    const productToDelete = await productModel.findById(id);
-    if (!productToDelete) return res.status(404).json({ message: "Product not found" });
+    const { id } = req.params;
+    const deletedProduct = await productModel.findByIdAndDelete(id);
 
-    await productToDelete.deleteOne();
-    res.json({ message: "Product deleted successfully" });
+    if (!deletedProduct) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found for deletion",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Product deleted successfully",
+      deletedProduct,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Server Error while deleting product",
+      error: error.message,
+    });
   }
 });
 
